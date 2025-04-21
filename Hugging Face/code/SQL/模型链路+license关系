@@ -1,0 +1,18 @@
+// Step 1: 找出派生最多的基座模型
+MATCH (base:Model)<-[:DERIVED_FROM]-(child:Model)
+WITH base, count(child) AS derived_count
+ORDER BY derived_count DESC
+LIMIT 1
+WITH base.name AS root_model
+
+// Step 2: 查询从该基座出发的所有继承链路径
+MATCH path = (root:Model {name: root_model})<-[:DERIVED_FROM*]-(desc:Model)
+
+// Step 3: 查询所有相关模型的 license 关系
+WITH collect(path) AS paths
+UNWIND paths AS p
+UNWIND nodes(p) AS n
+OPTIONAL MATCH (n)-[l:HAS_LICENSE]->(lic:License)
+
+// Step 4: 显示完整图结构（模型链 + license）
+RETURN DISTINCT p, l, lic
